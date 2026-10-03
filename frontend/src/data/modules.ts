@@ -1,6 +1,7 @@
 import type { ModuleMeta } from './types'
 
-// 模块元数据由仓库生成时写入：字段、状态、动作、流转目标都在这里，页面不再各自写一遍。
+// 模块元数据由仓库生成时写入：字段、状态、动作、流转目标、流转来源、指标口径都在这里，
+// 页面不再各自抄一份，统计、图例、明细全部从这份元数据和同一份记录数据派生。
 export const MODULES: ModuleMeta[] = [
   {
     key: "batchrecord",
@@ -11,7 +12,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待编制", "编制中", "已复核", "已归档"],
     actions: ["提交编制", "送交复核", "归档批记录"],
     actionTargets: {"提交编制": "编制中", "送交复核": "已复核", "归档批记录": "已归档"},
-    metrics: ["待编制批记录", "编制中批记录", "本月归档数"],
+    actionSources: {"提交编制": ["待编制"], "送交复核": ["编制中"], "归档批记录": ["已复核"]},
+    metrics: [
+      {label: "待编制批记录", status: "待编制"},
+      {label: "编制中批记录", status: "编制中"},
+      {label: "本月归档数", status: "已归档", uniqueBy: "批号"},
+    ],
   },
   {
     key: "cleanroom",
@@ -22,7 +28,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待监测", "监测中", "已达标", "超标预警"],
     actions: ["提交监测", "判定达标", "标记超标"],
     actionTargets: {"提交监测": "监测中", "判定达标": "已达标", "标记超标": "超标预警"},
-    metrics: ["待监测点位", "监测中点位", "超标点位数"],
+    actionSources: {"提交监测": ["待监测"], "判定达标": ["监测中"], "标记超标": ["监测中"]},
+    metrics: [
+      {label: "待监测点位", status: "待监测"},
+      {label: "监测中点位", status: "监测中"},
+      {label: "超标点位数", status: "超标预警"},
+    ],
   },
   {
     key: "materialrelease",
@@ -33,7 +44,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待放行", "已放行", "已拒绝", "已冻结"],
     actions: ["确认放行", "拒绝放行", "冻结物料"],
     actionTargets: {"确认放行": "已放行", "拒绝放行": "已拒绝", "冻结物料": "已冻结"},
-    metrics: ["待放行物料", "已放行物料", "已冻结物料"],
+    actionSources: {"确认放行": ["待放行"], "拒绝放行": ["待放行"], "冻结物料": ["待放行"]},
+    metrics: [
+      {label: "待放行物料", status: "待放行"},
+      {label: "已放行物料", status: "已放行"},
+      {label: "已冻结物料", status: "已冻结"},
+    ],
   },
   {
     key: "deviation",
@@ -44,7 +60,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待处理", "调查中", "已关闭", "已升级"],
     actions: ["提交调查", "关闭偏差", "升级偏差"],
     actionTargets: {"提交调查": "调查中", "关闭偏差": "已关闭", "升级偏差": "已升级"},
-    metrics: ["待处理偏差", "调查中偏差", "本月关闭数"],
+    actionSources: {"提交调查": ["待处理"], "关闭偏差": ["调查中"], "升级偏差": ["调查中"]},
+    metrics: [
+      {label: "待处理偏差", status: "待处理"},
+      {label: "调查中偏差", status: "调查中"},
+      {label: "本月关闭数", status: "已关闭"},
+    ],
   },
   {
     key: "changecontrol",
@@ -55,7 +76,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待评估", "评估中", "已批准", "已拒绝"],
     actions: ["提交评估", "批准变更", "退回变更"],
     actionTargets: {"提交评估": "评估中", "批准变更": "已批准", "退回变更": "已拒绝"},
-    metrics: ["待评估变更", "评估中变更", "本月批准数"],
+    actionSources: {"提交评估": ["待评估"], "批准变更": ["评估中"], "退回变更": ["评估中"]},
+    metrics: [
+      {label: "待评估变更", status: "待评估"},
+      {label: "评估中变更", status: "评估中"},
+      {label: "本月批准数", status: "已批准"},
+    ],
   },
   {
     key: "cleanvalidate",
@@ -66,7 +92,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待验证", "验证中", "已验证", "验证失败"],
     actions: ["提交验证", "确认验证", "判定失败"],
     actionTargets: {"提交验证": "验证中", "确认验证": "已验证", "判定失败": "验证失败"},
-    metrics: ["待验证设备", "验证中设备", "已验证设备"],
+    actionSources: {"提交验证": ["待验证"], "确认验证": ["验证中"], "判定失败": ["验证中"]},
+    metrics: [
+      {label: "待验证设备", status: "待验证"},
+      {label: "验证中设备", status: "验证中"},
+      {label: "已验证设备", status: "已验证"},
+    ],
   },
   {
     key: "sterilize",
@@ -77,7 +108,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待验证", "灭菌中", "已验证", "已失效"],
     actions: ["提交验证", "确认验证", "作废验证"],
     actionTargets: {"提交验证": "灭菌中", "确认验证": "已验证", "作废验证": "已失效"},
-    metrics: ["待验证程序", "灭菌中批次", "已验证程序"],
+    actionSources: {"提交验证": ["待验证"], "确认验证": ["灭菌中"], "作废验证": ["灭菌中"]},
+    metrics: [
+      {label: "待验证程序", status: "待验证"},
+      {label: "灭菌中批次", status: "灭菌中"},
+      {label: "已验证程序", status: "已验证"},
+    ],
   },
   {
     key: "mediafill",
@@ -88,7 +124,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待灌装", "灌装中", "已判定", "已终止"],
     actions: ["提交灌装", "判定结果", "终止灌装"],
     actionTargets: {"提交灌装": "灌装中", "判定结果": "已判定", "终止灌装": "已终止"},
-    metrics: ["待灌装批次", "灌装中批次", "污染瓶总数"],
+    actionSources: {"提交灌装": ["待灌装"], "判定结果": ["灌装中"], "终止灌装": ["灌装中"]},
+    metrics: [
+      {label: "待灌装批次", status: "待灌装"},
+      {label: "灌装中批次", status: "灌装中"},
+      {label: "污染瓶总数", sumOf: "污染瓶数"},
+    ],
   },
   {
     key: "watermonitor",
@@ -99,7 +140,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待取样", "检测中", "已合格", "不合格"],
     actions: ["提交检测", "判定合格", "标记不合格"],
     actionTargets: {"提交检测": "检测中", "判定合格": "已合格", "标记不合格": "不合格"},
-    metrics: ["待取样点位", "检测中样品", "不合格点位数"],
+    actionSources: {"提交检测": ["待取样"], "判定合格": ["检测中"], "标记不合格": ["检测中"]},
+    metrics: [
+      {label: "待取样点位", status: "待取样"},
+      {label: "检测中样品", status: "检测中"},
+      {label: "不合格点位数", status: "不合格"},
+    ],
   },
   {
     key: "gowning",
@@ -110,7 +156,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待确认", "确认中", "已确认", "需复确认"],
     actions: ["提交确认", "确认通过", "要求复确认"],
     actionTargets: {"提交确认": "确认中", "确认通过": "已确认", "要求复确认": "需复确认"},
-    metrics: ["待确认人员", "确认中人员", "需复确认人员"],
+    actionSources: {"提交确认": ["待确认"], "确认通过": ["确认中"], "要求复确认": ["确认中"]},
+    metrics: [
+      {label: "待确认人员", status: "待确认"},
+      {label: "确认中人员", status: "确认中"},
+      {label: "需复确认人员", status: "需复确认"},
+    ],
   },
   {
     key: "finishedqc",
@@ -121,7 +172,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待检验", "检验中", "已合格", "不合格"],
     actions: ["提交检验", "判定合格", "判定不合格"],
     actionTargets: {"提交检验": "检验中", "判定合格": "已合格", "判定不合格": "不合格"},
-    metrics: ["待检验批次", "检验中批次", "不合格批次数"],
+    actionSources: {"提交检验": ["待检验"], "判定合格": ["检验中"], "判定不合格": ["检验中"]},
+    metrics: [
+      {label: "待检验批次", status: "待检验"},
+      {label: "检验中批次", status: "检验中"},
+      {label: "不合格批次数", status: "不合格"},
+    ],
   },
   {
     key: "retainsample",
@@ -132,7 +188,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待留样", "已留样", "已到期", "已销毁"],
     actions: ["登记留样", "标记到期", "办理销毁"],
     actionTargets: {"登记留样": "已留样", "标记到期": "已到期", "办理销毁": "已销毁"},
-    metrics: ["待留样批次", "已留样批次", "本月销毁数"],
+    actionSources: {"登记留样": ["待留样"], "标记到期": ["已留样"], "办理销毁": ["已到期"]},
+    metrics: [
+      {label: "待留样批次", status: "待留样"},
+      {label: "已留样批次", status: "已留样"},
+      {label: "本月销毁数", status: "已销毁"},
+    ],
   },
   {
     key: "stability",
@@ -143,7 +204,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待考察", "考察中", "已完成", "已终止"],
     actions: ["提交考察", "确认完成", "终止考察"],
     actionTargets: {"提交考察": "考察中", "确认完成": "已完成", "终止考察": "已终止"},
-    metrics: ["待考察批次", "考察中批次", "已完成考察数"],
+    actionSources: {"提交考察": ["待考察"], "确认完成": ["考察中"], "终止考察": ["考察中"]},
+    metrics: [
+      {label: "待考察批次", status: "待考察"},
+      {label: "考察中批次", status: "考察中"},
+      {label: "已完成考察数", status: "已完成"},
+    ],
   },
   {
     key: "recall",
@@ -154,7 +220,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待启动", "调查中", "已完成", "已撤销"],
     actions: ["启动召回", "确认完成", "撤销召回"],
     actionTargets: {"启动召回": "调查中", "确认完成": "已完成", "撤销召回": "已撤销"},
-    metrics: ["待启动召回", "调查中召回", "已完成召回数"],
+    actionSources: {"启动召回": ["待启动"], "确认完成": ["调查中"], "撤销召回": ["调查中"]},
+    metrics: [
+      {label: "待启动召回", status: "待启动"},
+      {label: "调查中召回", status: "调查中"},
+      {label: "已完成召回数", status: "已完成"},
+    ],
   },
   {
     key: "supplieraudit",
@@ -165,7 +236,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待审计", "审计中", "已通过", "需整改"],
     actions: ["提交审计", "判定通过", "要求整改"],
     actionTargets: {"提交审计": "审计中", "判定通过": "已通过", "要求整改": "需整改"},
-    metrics: ["待审计供应商", "审计中供应商", "需整改供应商数"],
+    actionSources: {"提交审计": ["待审计"], "判定通过": ["审计中"], "要求整改": ["审计中"]},
+    metrics: [
+      {label: "待审计供应商", status: "待审计"},
+      {label: "审计中供应商", status: "审计中"},
+      {label: "需整改供应商数", status: "需整改"},
+    ],
   },
   {
     key: "training",
@@ -176,7 +252,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待培训", "培训中", "已合格", "未通过"],
     actions: ["提交培训", "判定合格", "判定未通过"],
     actionTargets: {"提交培训": "培训中", "判定合格": "已合格", "判定未通过": "未通过"},
-    metrics: ["待培训人员", "培训中人员", "未通过人员数"],
+    actionSources: {"提交培训": ["待培训"], "判定合格": ["培训中"], "判定未通过": ["培训中"]},
+    metrics: [
+      {label: "待培训人员", status: "待培训"},
+      {label: "培训中人员", status: "培训中"},
+      {label: "未通过人员数", status: "未通过"},
+    ],
   },
   {
     key: "annualreview",
@@ -187,7 +268,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待回顾", "回顾中", "已批准", "已退回"],
     actions: ["提交回顾", "批准回顾", "退回修改"],
     actionTargets: {"提交回顾": "回顾中", "批准回顾": "已批准", "退回修改": "已退回"},
-    metrics: ["待回顾报告", "回顾中报告", "已批准报告"],
+    actionSources: {"提交回顾": ["待回顾"], "批准回顾": ["回顾中"], "退回修改": ["回顾中"]},
+    metrics: [
+      {label: "待回顾报告", status: "待回顾"},
+      {label: "回顾中报告", status: "回顾中"},
+      {label: "已批准报告", status: "已批准"},
+    ],
   },
   {
     key: "complaint",
@@ -198,7 +284,12 @@ export const MODULES: ModuleMeta[] = [
     statuses: ["待受理", "调查中", "已回复", "已关闭"],
     actions: ["受理投诉", "回复投诉", "关闭投诉"],
     actionTargets: {"受理投诉": "调查中", "回复投诉": "已回复", "关闭投诉": "已关闭"},
-    metrics: ["待受理投诉", "调查中投诉", "本月关闭数"],
+    actionSources: {"受理投诉": ["待受理"], "回复投诉": ["调查中"], "关闭投诉": ["已回复"]},
+    metrics: [
+      {label: "待受理投诉", status: "待受理"},
+      {label: "调查中投诉", status: "调查中"},
+      {label: "本月关闭数", status: "已关闭"},
+    ],
   },
 ]
 

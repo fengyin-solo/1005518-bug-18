@@ -1,5 +1,5 @@
 import { MODULE_BY_KEY } from '@/data/modules'
-import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { allRows, isTerminalStatus, listRows, resetRows, saveRows, statusFieldOf } from '@/data/local-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -19,13 +19,20 @@ export function filterRows(rows: EntryRow[], filters: Record<string, string>): E
     return rows
   }
   return rows.filter((row) =>
-    pairs.every(([field, value]) => String(row[field] ?? '').includes(value.trim())),
+    pairs.every(([field, value]) => String(row[field] ?? '').trim().includes(value.trim())),
   )
 }
 
 export function listEntries(key: string, filters: Record<string, string> = {}): PageResult {
   const matched = filterRows(listRows(key), filters)
   return { items: matched, total: matched.length, page: 1, size: matched.length }
+}
+
+/** 这条记录当前可执行的动作：只放行登记在 actionSources 里的来源状态，页面按它渲染按钮。 */
+export function availableActions(key: string, row: EntryRow): string[] {
+  const meta = moduleMeta(key)
+  const status = String(row.status)
+  return meta.actions.filter((action) => (meta.actionSources[action] ?? []).includes(status))
 }
 
 export function runAction(key: string, id: number, action: string): ActionResult {
@@ -43,17 +50,61 @@ export function runAction(key: string, id: number, action: string): ActionResult
   if (current === target) {
     return { ok: false, message: `${meta.entity}已经是「${target}」，不用重复操作` }
   }
-  const lastStatus = meta.statuses[meta.statuses.length - 1]
+  // 状态只能往下流转：目标必须排在当前状态之后，倒退一律拒收。
+  const currentIndex = meta.statuses.indexOf(current)
+  const targetIndex = meta.statuses.indexOf(target)
+  if (targetIndex <= currentIndex) {
+    return { ok: false, message: `状态只能往下流转，不能从「${current}」退回到「${target}」` }
+  }
+  // 跳级拒收：动作只能从登记的来源状态发起。
+  const sources = meta.actionSources[action] ?? []
+  if (!sources.includes(current)) {
+    return {
+      ok: false,
+      message: `「${action}」只能从「${sources.join('」「')}」发起，当前状态「${current}」，跳级操作拒收`,
+    }
+  }
+  // 归档与送交复核写进同一份批记录：系统状态与业务状态字段一次切换到位。
+  const statusField = statusFieldOf(meta)
   const updated: EntryRow = {
     ...rows[index],
     status: target,
-    pending: target !== lastStatus,
+    [statusField]: target,
+    pending: !isTerminalStatus(meta, target),
     abnormal: NEGATIVE_ACTIONS.some((verb) => action.startsWith(verb)),
   }
   const next = [...rows]
   next[index] = updated
   saveRows(key, next)
-  return { ok: true, message: `${meta.entity}已${action}，当前状态「${target}」` }
+  return { ok: true, message: `${meta.entity}已执行「${action}」，当前状态「${target}」` }
+}
+
+/** 指标卡：从同一份记录现算，归档类口径按批号去重，同一批号重复归档只算一次。 */
+export function moduleMetrics(key: string): { label: string; value: number }[] {
+  const meta = moduleMeta(key)
+  const rows = listRows(key)
+  return meta.metrics.map((spec) => {
+    if (spec.sumOf) {
+      const sum = rows.reduce((total, row) => total + (Number(row[spec.sumOf as string]) || 0), 0)
+      return { label: spec.label, value: sum }
+    }
+    const matched = rows.filter((row) => String(row.status) === spec.status)
+    if (spec.uniqueBy) {
+      const distinct = new Set(matched.map((row) => String(row[spec.uniqueBy as string] ?? row.id)))
+      return { label: spec.label, value: distinct.size }
+    }
+    return { label: spec.label, value: matched.length }
+  })
+}
+
+/** 状态图例：与指标卡、明细、总览同源，都数写库的同一份记录。 */
+export function statusSummary(key: string): { status: string; count: number }[] {
+  const meta = moduleMeta(key)
+  const rows = listRows(key)
+  return meta.statuses.map((status) => ({
+    status,
+    count: rows.filter((row) => String(row.status) === status).length,
+  }))
 }
 
 export function resetModule(key: string): PageResult {

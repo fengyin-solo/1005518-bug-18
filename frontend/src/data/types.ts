@@ -8,6 +8,14 @@ export type EntryRow = {
   [field: string]: string | number | boolean
 }
 
+/** 指标口径：status 按状态计数，uniqueBy 按字段去重（同一批号只算一次），sumOf 对数值字段求和。 */
+export type MetricSpec = {
+  label: string
+  status?: string
+  uniqueBy?: string
+  sumOf?: string
+}
+
 export type ModuleMeta = {
   key: string
   name: string
@@ -17,7 +25,9 @@ export type ModuleMeta = {
   statuses: string[]
   actions: string[]
   actionTargets: Record<string, string>
-  metrics: string[]
+  /** 每个动作允许的发起状态：状态只能往下流转，不在来源状态里的一律按跳级拒收。 */
+  actionSources: Record<string, string[]>
+  metrics: MetricSpec[]
 }
 
 export type PageResult = {
